@@ -77,3 +77,5 @@ src/
 └── App.tsx
 public/data/world-110m.json   World map TopoJSON (from `world-atlas`)
 ```
+
+Dedicated to Civ fandom
