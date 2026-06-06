@@ -5,10 +5,10 @@ import { makeCivScoreColorScale, makeYieldColorScale } from '../lib/colorScale';
 import { YIELD_META, type Country, type YieldKey } from '../types';
 
 const WORLD = '/data/world-110m.json';
-const OCEAN = '#15334a';
-const STROKE = '#0d1b2a';
-const STROKE_HOVER = '#fff7d4';
-const STROKE_SELECTED = '#e0a82e';
+const STROKE_DEFAULT = 'rgb(13 27 42 / 0.8)';
+const STROKE_HOVER = '#ffffff';
+const STROKE_SELECTED = '#d4a017';
+const STROKE_COMPARE = '#ffffff';
 
 export const WorldMap = memo(function WorldMap() {
   const countries = useStore((s) => s.countries);
@@ -19,6 +19,7 @@ export const WorldMap = memo(function WorldMap() {
   const heatmap = useStore((s) => s.heatmapYield);
   const compareSlots = useStore((s) => s.compareSlots);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
+  const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
   const colorFor = useMemo(() => {
     if (!heatmap) return makeCivScoreColorScale(countries);
@@ -42,7 +43,7 @@ export const WorldMap = memo(function WorldMap() {
       <ComposableMap
         projection="geoEqualEarth"
         projectionConfig={{ scale: 195 }}
-        style={{ width: '100%', height: '100%', background: OCEAN }}
+        style={{ width: '100%', height: '100%', background: 'rgb(var(--ocean))' }}
       >
         <ZoomableGroup center={[10, 15]} zoom={1} minZoom={0.8} maxZoom={5}>
           <Geographies geography={WORLD}>
@@ -51,22 +52,22 @@ export const WorldMap = memo(function WorldMap() {
                 const numId = String(geo.id);
                 const country: Country | undefined = byNumeric[numId];
                 const iso3 = country?.iso3;
-                const fill = country ? colorFor(country.iso3) : '#3a4a5a';
+                const fill = country ? colorFor(country.iso3) : 'rgb(58 74 90)';
                 const isSelected = iso3 && iso3 === selectedIso3;
                 const isCompare = iso3 && (compareSlots[0] === iso3 || compareSlots[1] === iso3);
-                const stroke = isSelected ? STROKE_SELECTED : isCompare ? '#fff7d4' : STROKE;
+                const stroke = isSelected ? STROKE_SELECTED : isCompare ? STROKE_COMPARE : STROKE_DEFAULT;
                 const strokeWidth = isSelected || isCompare ? 1.4 : 0.4;
 
                 return (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    onMouseEnter={(evt) => {
+                    onMouseEnter={isTouchDevice ? undefined : (evt) => {
                       const text = tooltipText(country, String(geo.properties?.name ?? '—'));
                       if (country) setHovered(country.iso3);
                       setTooltip({ x: evt.clientX, y: evt.clientY, text });
                     }}
-                    onMouseMove={(evt) => {
+                    onMouseMove={isTouchDevice ? undefined : (evt) => {
                       const text = tooltipText(country, String(geo.properties?.name ?? '—'));
                       setTooltip((prev) =>
                         prev && prev.text === text
@@ -74,7 +75,7 @@ export const WorldMap = memo(function WorldMap() {
                           : { x: evt.clientX, y: evt.clientY, text }
                       );
                     }}
-                    onMouseLeave={() => {
+                    onMouseLeave={isTouchDevice ? undefined : () => {
                       setHovered(null);
                       setTooltip(null);
                     }}
@@ -108,7 +109,7 @@ export const WorldMap = memo(function WorldMap() {
 
       {tooltip && (
         <div
-          className="pointer-events-none fixed z-50 rounded-md border border-civ-border bg-civ-paper px-2 py-1 text-xs font-semibold text-civ-ink shadow-civ"
+          className="pointer-events-none fixed z-50 glass px-2.5 py-1.5 text-[12px] font-medium text-ink"
           style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}
         >
           {tooltip.text}

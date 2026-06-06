@@ -15,6 +15,10 @@ export interface YieldValue {
   display: string;
   /** Free-form breakdown of how it was computed */
   detail?: string;
+  /** 1-based rank across all countries (1 = highest). Computed at boot. */
+  rank?: number;
+  /** Percentile 0-100 (100 = top). Computed at boot. */
+  percentile?: number;
 }
 
 export interface YieldRecord {
@@ -118,6 +122,9 @@ export interface Country {
   tradePartners: TradePartner[];
   exportsUsd: number;
   importsUsd: number;
+
+  /** Neutral, cited caveat for contested-sovereignty countries (Taiwan, Palestine, Kosovo, etc.) */
+  disputedNote?: string;
 
   /** Computed Civ Score 0-1000 */
   civScore?: number;

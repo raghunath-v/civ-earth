@@ -1,10 +1,14 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, animate } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { YieldRow } from './YieldRow';
 import { PoliticalCompass } from './PoliticalCompass';
 import { SrcLink } from './SrcLink';
+import { YieldPopover } from './YieldPopover';
+import { EraPopover } from './EraPopover';
+import { DisputedBanner } from './DisputedBanner';
 import { SOURCE_LINKS } from '../lib/sources';
-import type { Country } from '../types';
+import type { Country, YieldKey } from '../types';
 
 const fmtN = (n: number) => {
   if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
@@ -19,24 +23,66 @@ export function StatCard() {
   const setSelected = useStore((s) => s.setSelected);
   const addToCompare = useStore((s) => s.addToCompare);
   const compareSlots = useStore((s) => s.compareSlots);
+  const [openYield, setOpenYield] = useState<YieldKey | null>(null);
+  const [openEra, setOpenEra] = useState(false);
+
+  // On mobile (<640px) render as a bottom sheet; desktop keeps right drawer
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
 
   return (
     <AnimatePresence>
       {selectedIso3 && country && (
-        <motion.div
+        isMobile ? (
+          /* ── Mobile: bottom sheet ── */
+          <motion.aside
+            key={`sheet-${country.iso3}`}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 36 }}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.25 }}
+            onDragEnd={(_e, info) => { if (info.offset.y > 80) setSelected(null); }}
+            className="fixed inset-x-0 bottom-0 z-40 max-h-[92vh] rounded-t-3xl"
+            style={{ touchAction: 'none' }}
+          >
+            <div className="glass h-full flex flex-col overflow-hidden rounded-t-3xl">
+              {/* drag handle */}
+              <div className="flex justify-center pt-2.5 pb-1">
+                <div className="w-10 h-1 rounded-full bg-line/60" />
+              </div>
+              <Header country={country} onClose={() => setSelected(null)} onEraClick={() => setOpenEra(true)} />
+              <div className="scroll-y flex-1 overflow-y-auto px-5 py-4 space-y-5" style={{ touchAction: 'pan-y' }}>
+                {country.disputedNote && <DisputedBanner note={country.disputedNote} />}
+                <CivScoreBlock country={country} />
+                <Section title="Yields"><YieldRow country={country} onYieldClick={(k) => setOpenYield(k)} /></Section>
+                <Section title="Ideology & Politics"><Ideology country={country} /></Section>
+                <Section title="Civic Indicators"><CivicBars country={country} /></Section>
+              </div>
+              <Footer country={country} compareSlots={compareSlots} onCompare={addToCompare} />
+            </div>
+            <YieldPopover country={country} yieldKey={openYield} onClose={() => setOpenYield(null)} />
+            <EraPopover country={openEra ? country : null} onClose={() => setOpenEra(false)} />
+          </motion.aside>
+        ) : (
+        /* ── Desktop: right drawer ── */
+        <motion.aside
           key={country.iso3}
-          initial={{ x: 480, opacity: 0 }}
+          initial={{ x: 460, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 480, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 250, damping: 28 }}
-          className="absolute right-0 top-0 bottom-0 z-40 w-[460px] max-w-[90vw] p-3"
+          exit={{ x: 460, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 240, damping: 28 }}
+          className="absolute right-0 top-0 bottom-0 z-40 w-[440px] max-w-[92vw] p-4"
         >
-          <div className="civ-panel h-full flex flex-col">
-            <Header country={country} onClose={() => setSelected(null)} />
-            <div className="civ-scroll flex-1 overflow-y-auto px-4 py-3 space-y-4">
+          <div className="glass h-full flex flex-col overflow-hidden">
+            <Header country={country} onClose={() => setSelected(null)} onEraClick={() => setOpenEra(true)} />
+            <div className="scroll-y flex-1 overflow-y-auto px-5 py-4 space-y-5">
+              {country.disputedNote && <DisputedBanner note={country.disputedNote} />}
               <CivScoreBlock country={country} />
               <Section title="Yields">
-                <YieldRow country={country} />
+                <YieldRow country={country} onYieldClick={(k) => setOpenYield(k)} />
+                <div className="mt-1.5 text-[10px] text-ink-subtle">Click any yield to see what it measures.</div>
               </Section>
               <Section title="Ideology & Politics">
                 <Ideology country={country} />
@@ -48,10 +94,10 @@ export function StatCard() {
                 <Section title="Alliances & Blocs">
                   <div className="flex flex-wrap gap-1.5">
                     {country.alliances.map((a) => (
-                      <span key={a} className="civ-chip">{a}</span>
+                      <span key={a} className="chip">{a}</span>
                     ))}
                     {country.unSecurityCouncilPermanent && (
-                      <span className="civ-chip" style={{ borderColor: '#e0a82e', background: '#f5d97a' }}>UN SC P5</span>
+                      <span className="chip border-civgold-ring/60 bg-civgold-bg text-ink">UN SC P5</span>
                     )}
                   </div>
                 </Section>
@@ -65,12 +111,12 @@ export function StatCard() {
                 });
                 return (
                   <Section title={`Wonders (${merged.length})`} sourceUrl={SOURCE_LINKS.unesco(country).url} sourceLabel="UNESCO WHS">
-                    <ul className="space-y-1 text-sm">
+                    <ul className="space-y-1.5 text-[13px]">
                       {merged.slice(0, 8).map((w) => (
                         <li key={w.name} className="flex items-baseline gap-2">
-                          <span className="text-base leading-none">{w.kind === 'natural' ? '🌋' : w.kind === 'mixed' ? '🏞️' : '🏛️'}</span>
-                          <span className="font-semibold">{w.name}</span>
-                          {w.year && <span className="text-xs text-civ-ink/60">since {w.year}</span>}
+                          <span className="text-[15px] leading-none">{w.kind === 'natural' ? '🌋' : w.kind === 'mixed' ? '🏞️' : '🏛️'}</span>
+                          <span className="font-medium text-ink">{w.name}</span>
+                          {w.year && <span className="text-[11px] text-ink-subtle">since {w.year}</span>}
                         </li>
                       ))}
                     </ul>
@@ -79,12 +125,12 @@ export function StatCard() {
               })()}
               {country.greatPeople.length > 0 && (
                 <Section title="Great People">
-                  <ul className="space-y-1 text-sm">
+                  <ul className="space-y-1.5 text-[13px]">
                     {country.greatPeople.map((p) => (
                       <li key={p.name} className="flex items-baseline gap-2">
                         <span>{kindIcon(p.kind)}</span>
-                        <span className="font-semibold">{p.name}</span>
-                        {p.note && <span className="text-xs text-civ-ink/70">— {p.note}</span>}
+                        <span className="font-medium text-ink">{p.name}</span>
+                        {p.note && <span className="text-[11px] text-ink-muted">— {p.note}</span>}
                       </li>
                     ))}
                   </ul>
@@ -93,18 +139,18 @@ export function StatCard() {
               {(country.luxuryResources.length > 0 || country.strategicResources.length > 0) && (
                 <Section title="Resources">
                   {country.luxuryResources.length > 0 && (
-                    <div className="mb-1.5">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-civ-gold">Luxury</div>
+                    <div className="mb-2">
+                      <div className="eyebrow mb-1">Luxury</div>
                       <div className="flex flex-wrap gap-1.5">
-                        {country.luxuryResources.map((r) => <span key={r} className="civ-chip">💎 {r}</span>)}
+                        {country.luxuryResources.map((r) => <span key={r} className="chip">💎 {r}</span>)}
                       </div>
                     </div>
                   )}
                   {country.strategicResources.length > 0 && (
                     <div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-civ-military">Strategic</div>
+                      <div className="eyebrow mb-1">Strategic</div>
                       <div className="flex flex-wrap gap-1.5">
-                        {country.strategicResources.map((r) => <span key={r} className="civ-chip">🛡️ {r}</span>)}
+                        {country.strategicResources.map((r) => <span key={r} className="chip">🛡️ {r}</span>)}
                       </div>
                     </div>
                   )}
@@ -112,17 +158,17 @@ export function StatCard() {
               )}
               {country.tradePartners.length > 0 && (
                 <Section title="Trade">
-                  <div className="text-xs">
-                    Top partners: <span className="font-semibold">{country.tradePartners.map((p) => p.name).join(' · ')}</span>
-                    <div className="mt-1 grid grid-cols-2 gap-2 text-civ-ink/80">
-                      <div>Exports: <span className="font-bold text-civ-ink">${fmtN(country.exportsUsd)}</span></div>
-                      <div>Imports: <span className="font-bold text-civ-ink">${fmtN(country.importsUsd)}</span></div>
+                  <div className="text-[13px] text-ink-muted">
+                    <div>Top partners: <span className="font-medium text-ink">{country.tradePartners.map((p) => p.name).join(' · ')}</span></div>
+                    <div className="mt-1.5 grid grid-cols-2 gap-3">
+                      <div>Exports <span className="font-semibold text-ink">${fmtN(country.exportsUsd)}</span></div>
+                      <div>Imports <span className="font-semibold text-ink">${fmtN(country.importsUsd)}</span></div>
                     </div>
                   </div>
                 </Section>
               )}
               <Section title="Demographics" sourceUrl={SOURCE_LINKS.worldBank(country.iso3)} sourceLabel="World Bank">
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-2 gap-2 text-[13px]">
                   <Stat label="Population" value={fmtN(country.population)} />
                   <Stat label="Urban" value={`${country.populationUrbanPct.toFixed(0)}%`} />
                   <Stat label="Median age" value={`${country.populationMedianAge.toFixed(1)} yr`} />
@@ -132,15 +178,15 @@ export function StatCard() {
                 </div>
               </Section>
               <Section title="Government">
-                <div className="text-sm">{country.government}</div>
-                <div className="mt-1 text-xs text-civ-ink/70">
+                <div className="text-[13px] text-ink">{country.government}</div>
+                <div className="mt-1 text-[12px] text-ink-muted">
                   Ruling: {country.rulingCoalition.map((p) => `${p.name} (${p.ideology})`).join(' · ')}
                 </div>
               </Section>
               <Section title="Sources">
-                <div className="text-[10px] text-civ-ink/70 leading-relaxed">
-                  <div className="mb-1">All figures are snapshots, mostly 2023–2024. Click any source to see the underlying dataset.</div>
-                  <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                <div className="text-[11px] text-ink-muted leading-relaxed">
+                  <div className="mb-1.5">All figures are snapshots, mostly 2023–2024. Click any source to see the underlying dataset.</div>
+                  <div className="flex flex-wrap gap-x-2.5 gap-y-1">
                     {[
                       { label: 'World Bank Open Data', url: SOURCE_LINKS.worldBank(country.iso3) },
                       { label: 'UNDP HDR', url: SOURCE_LINKS.hdi(country).url },
@@ -158,54 +204,83 @@ export function StatCard() {
                       { label: 'Pew Religion', url: 'https://www.pewresearch.org/religion/feature/religious-composition-by-country-2010-2050/' },
                     ].map((s) => (
                       <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
-                        className="underline decoration-civ-ink/30 hover:decoration-civ-gold hover:text-civ-gold transition-colors">
+                        className="text-ink-muted underline decoration-line decoration-1 underline-offset-2 hover:text-civgold hover:decoration-civgold transition-colors">
                         {s.label}
                       </a>
                     ))}
                   </div>
-                  <div className="mt-1.5 text-civ-ink/50">Civ Score is a derived composite (z-score weighted average of 8 yields). Era is derived from HDI tier.</div>
+                  <div className="mt-2 text-ink-subtle">Civ Score is a derived composite (z-score weighted average of 8 yields). Era is derived from HDI tier.</div>
                 </div>
               </Section>
             </div>
             <Footer country={country} compareSlots={compareSlots} onCompare={addToCompare} />
           </div>
-        </motion.div>
+          <YieldPopover country={country} yieldKey={openYield} onClose={() => setOpenYield(null)} />
+          <EraPopover country={openEra ? country : null} onClose={() => setOpenEra(false)} />
+        </motion.aside>
+        )
       )}
     </AnimatePresence>
   );
 }
 
-function Header({ country, onClose }: { country: Country; onClose: () => void }) {
+function Header({ country, onClose, onEraClick }: { country: Country; onClose: () => void; onEraClick: () => void }) {
   return (
-    <div className="px-4 pt-4 pb-2 border-b-2 border-civ-border/40">
+    <div className="px-5 pt-5 pb-3 border-b border-line/60">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5">
             <div className="text-3xl leading-none">{country.flag}</div>
-            <div>
-              <div className="civ-heading text-xl leading-tight">{country.name}</div>
-              <div className="text-xs text-civ-ink/70">{country.capital} · {country.region}</div>
+            <div className="min-w-0">
+              <div className="heading text-[20px] leading-tight truncate">{country.name}</div>
+              <div className="text-[12px] text-ink-muted">{country.capital} · {country.region}</div>
             </div>
           </div>
-          <div className="mt-1.5 flex items-center gap-2 text-xs">
-            <span className="civ-chip" style={{ background: '#e0a82e' }}>Era: {country.era}</span>
-            <span className="text-civ-ink/70">{country.leader.name} · {country.leader.title}{country.leader.since ? ` (since ${country.leader.since})` : ''}</span>
+          <div className="mt-2.5 flex items-center gap-2 text-[12px]">
+            <button
+              onClick={onEraClick}
+              className="inline-flex items-center gap-1 rounded-full bg-civgold-bg border border-civgold-ring/40 px-2 py-0.5 text-[11px] font-semibold text-ink transition-all duration-150 ease-apple hover:border-civgold-ring active:scale-[0.96]"
+              title="See HDI ladder + era thresholds"
+            >
+              {country.era} era
+              <span className="text-civgold-ring/80 text-[10px]">ⓘ</span>
+            </button>
+            <span className="text-ink-muted truncate">{country.leader.name} · {country.leader.title}{country.leader.since ? ` · ${country.leader.since}` : ''}</span>
           </div>
         </div>
-        <button onClick={onClose} className="text-civ-ink/60 hover:text-civ-ink text-2xl leading-none px-1">×</button>
+        <button onClick={onClose} className="text-ink-muted hover:text-ink text-xl leading-none px-1 -mr-1 transition-colors" aria-label="Close">×</button>
       </div>
     </div>
   );
 }
 
 function CivScoreBlock({ country }: { country: Country }) {
+  const target = country.civScore ?? 0;
+  const [display, setDisplay] = useState(0);
+  const prevIso = useRef('');
+
+  useEffect(() => {
+    if (prevIso.current === country.iso3) return;
+    prevIso.current = country.iso3;
+    setDisplay(0);
+    const controls = animate(0, target, {
+      duration: 0.7,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => setDisplay(Math.round(v)),
+    });
+    return controls.stop;
+  }, [country.iso3, target]);
+
   return (
-    <div className="flex items-center justify-between rounded-lg border-2 border-civ-gold bg-civ-gold/15 px-4 py-3">
+    <div className="flex items-center justify-between rounded-2xl border border-civgold-ring/30 bg-civgold-bg/50 px-4 py-3">
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-widest text-civ-ink/70">Civ Score</div>
-        <div className="font-display text-4xl font-bold text-civ-ink leading-none">{country.civScore ?? '—'}<span className="text-sm text-civ-ink/50">/1000</span></div>
+        <div className="eyebrow text-civgold-ring">Civ Score</div>
+        <div className="font-bold text-[36px] text-ink leading-none mt-0.5 tabular-nums">
+          {country.civScore !== undefined ? display : '—'}
+          <span className="text-[14px] text-ink-subtle font-medium">/1000</span>
+        </div>
       </div>
-      <div className="text-right text-xs text-civ-ink/70">
+      <div className="text-right text-[11px] text-ink-muted leading-snug">
         Composite of 8 yields,<br/>z-score weighted.
       </div>
     </div>
@@ -215,7 +290,7 @@ function CivScoreBlock({ country }: { country: Country }) {
 function Section({ title, children, sourceUrl, sourceLabel }: { title: string; children: React.ReactNode; sourceUrl?: string; sourceLabel?: string }) {
   return (
     <div>
-      <div className="civ-heading text-xs mb-1.5 text-civ-ink/80 border-b border-civ-border/40 pb-0.5">
+      <div className="eyebrow mb-2 flex items-center gap-1">
         {title}
         {sourceUrl && sourceLabel && <SrcLink url={sourceUrl} label={sourceLabel} />}
       </div>
@@ -226,9 +301,9 @@ function Section({ title, children, sourceUrl, sourceLabel }: { title: string; c
 
 function Stat({ label, value, sourceUrl, sourceLabel }: { label: string; value: string; sourceUrl?: string; sourceLabel?: string }) {
   return (
-    <div className="rounded border border-civ-border/30 bg-civ-parchment/40 px-2 py-1">
-      <div className="text-[10px] uppercase tracking-wide text-civ-ink/60">{label}</div>
-      <div className="text-sm font-semibold text-civ-ink leading-tight">
+    <div className="rounded-xl border border-line/60 bg-surface-3/60 px-2.5 py-1.5">
+      <div className="eyebrow">{label}</div>
+      <div className="text-[13px] font-semibold text-ink leading-tight mt-0.5">
         {value}
         {sourceUrl && sourceLabel && <SrcLink url={sourceUrl} label={sourceLabel} />}
       </div>
@@ -246,34 +321,34 @@ function Ideology({ country }: { country: Country }) {
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-3">
-        <div className="shrink-0"><PoliticalCompass history={country.ideologyHistory} size={220} /></div>
-        <div className="flex-1 text-xs space-y-1">
-          <div className="text-civ-ink/60 mb-1">Indices:</div>
+        <div className="shrink-0"><PoliticalCompass history={country.ideologyHistory} size={210} /></div>
+        <div className="flex-1 text-[12px] space-y-1">
+          <div className="eyebrow mb-1">Democracy indices</div>
           {democracy.vdem !== undefined && (
-            <div><span className="font-semibold">V-Dem {democracy.vdem.toFixed(2)}</span><SrcLink {...SOURCE_LINKS.vdem()} /> <span className="text-civ-ink/50 text-[10px]">(0–1)</span></div>
+            <div className="text-ink"><span className="font-semibold">V-Dem {democracy.vdem.toFixed(2)}</span><SrcLink {...SOURCE_LINKS.vdem()} /> <span className="text-ink-subtle text-[10px]">(0–1)</span></div>
           )}
           {democracy.eiu !== undefined && (
-            <div>
+            <div className="text-ink">
               <span className="font-semibold">EIU {democracy.eiu.toFixed(2)}</span><SrcLink {...SOURCE_LINKS.eiu()} />
-              {democracy.eiuCategory && <span className="text-civ-ink/70"> — {democracy.eiuCategory}</span>}
+              {democracy.eiuCategory && <span className="text-ink-muted"> — {democracy.eiuCategory}</span>}
             </div>
           )}
           {democracy.freedomHouseScore !== undefined && (
-            <div>
+            <div className="text-ink">
               <span className="font-semibold">FH {democracy.freedomHouseScore}/100</span><SrcLink {...fhSrc} />
-              {democracy.freedomHouse && <span className="text-civ-ink/70"> — {democracy.freedomHouse}</span>}
+              {democracy.freedomHouse && <span className="text-ink-muted"> — {democracy.freedomHouse}</span>}
             </div>
           )}
           {democracy.polity5 !== undefined && (
-            <div><span className="font-semibold">Polity {democracy.polity5}</span><SrcLink {...SOURCE_LINKS.polity()} /> <span className="text-civ-ink/50 text-[10px]">(-10..10)</span></div>
+            <div className="text-ink"><span className="font-semibold">Polity {democracy.polity5}</span><SrcLink {...SOURCE_LINKS.polity()} /> <span className="text-ink-subtle text-[10px]">(-10..10)</span></div>
           )}
           {disagree && (
-            <div className="rounded border border-civ-military/50 bg-civ-military/10 px-2 py-1 text-civ-ink text-[11px]">
+            <div className="mt-2 rounded-lg border border-yield-military/40 bg-yield-military/10 px-2 py-1 text-ink text-[11px]">
               ⚠ Sources disagree meaningfully on classification.
             </div>
           )}
-          <div className="pt-1 text-[10px] text-civ-ink/60">
-            Compass: econ axis <SrcLink {...SOURCE_LINKS.fraser()} label="Fraser EFI" />, authority axis from V-Dem LDI<SrcLink {...SOURCE_LINKS.vdem()} />, press-freedom data from RSF<SrcLink {...rsfSrc} label="RSF" />.
+          <div className="pt-1.5 text-[10px] text-ink-subtle leading-relaxed">
+            Compass axes: economic from Fraser EFI<SrcLink {...SOURCE_LINKS.fraser()} />, authority from V-Dem LDI<SrcLink {...SOURCE_LINKS.vdem()} />; press freedom from RSF<SrcLink {...rsfSrc} />.
           </div>
         </div>
       </div>
@@ -295,18 +370,24 @@ function CivicBars({ country }: { country: Country }) {
     { label: 'Press Freedom', icon: '📰', value: country.civics.pressFreedom, color: '#3aa6d0', src: SOURCE_LINKS.pressFreedom(country) },
     { label: 'Anti-Corruption', icon: '🧹', value: country.civics.antiCorruption, color: '#7cb342', src: SOURCE_LINKS.cpi() },
     { label: 'Civil Liberties', icon: '⚖️', value: country.civics.civilLiberties, color: '#a86bd1', src: SOURCE_LINKS.freedomHouse(country) },
-    { label: 'Equality', icon: '🤝', value: country.civics.equality, color: '#e0a82e', src: SOURCE_LINKS.gini() },
+    { label: 'Equality', icon: '🤝', value: country.civics.equality, color: '#d4a017', src: SOURCE_LINKS.gini() },
   ];
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 gap-2.5">
       {items.map((it) => (
-        <div key={it.label} className="rounded border border-civ-border/40 bg-civ-parchment/50 px-2 py-1.5">
-          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-civ-ink/80">
-            <span>{it.icon} {it.label}<SrcLink {...it.src} /></span>
-            <span className="text-civ-ink">{it.value.toFixed(1)}/10</span>
+        <div key={it.label} className="rounded-xl border border-line/60 bg-surface-3/60 px-2.5 py-2">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-ink-muted">
+            <span className="truncate">{it.icon} {it.label}<SrcLink {...it.src} /></span>
+            <span className="text-ink tabular-nums">{it.value.toFixed(1)}</span>
           </div>
-          <div className="mt-1 h-2 rounded bg-civ-border/20 overflow-hidden">
-            <div className="h-full rounded" style={{ width: `${(it.value / 10) * 100}%`, background: it.color }} />
+          <div className="mt-1.5 h-1.5 rounded-full bg-line/60 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${(it.value / 10) * 100}%` }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+              style={{ background: it.color }}
+            />
           </div>
         </div>
       ))}
@@ -317,12 +398,12 @@ function CivicBars({ country }: { country: Country }) {
 function Footer({ country, compareSlots, onCompare }: { country: Country; compareSlots: [string | null, string | null]; onCompare: (iso3: string) => void }) {
   const slot = compareSlots[0] === country.iso3 ? 'A' : compareSlots[1] === country.iso3 ? 'B' : null;
   return (
-    <div className="border-t-2 border-civ-border/40 px-4 py-2 flex items-center justify-between">
-      <div className="text-[11px] text-civ-ink/70">
-        Compare: <span className="font-semibold">{compareSlots[0] ?? '—'}</span> vs <span className="font-semibold">{compareSlots[1] ?? '—'}</span>
+    <div className="border-t border-line/60 px-5 py-3 flex items-center justify-between">
+      <div className="text-[11px] text-ink-muted">
+        Compare: <span className="font-semibold text-ink">{compareSlots[0] ?? '—'}</span> vs <span className="font-semibold text-ink">{compareSlots[1] ?? '—'}</span>
       </div>
       <button
-        className="civ-btn"
+        className={slot ? 'btn-ghost' : 'btn-gold'}
         onClick={() => onCompare(country.iso3)}
       >
         {slot ? `In slot ${slot}` : '+ Add to compare'}

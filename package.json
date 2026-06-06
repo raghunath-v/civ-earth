@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "refresh:timeseries": "node --experimental-strip-types scripts/fetch-timeseries.ts",
+    "generate:og": "node --experimental-strip-types scripts/generate-og.ts"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",

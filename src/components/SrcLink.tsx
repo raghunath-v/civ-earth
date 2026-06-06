@@ -4,8 +4,8 @@ interface Props {
 }
 
 /**
- * Tiny superscript link rendered next to a number/fact, linking to the
- * authoritative source. Tooltip shows the source name on hover.
+ * Tiny inline source link. Used inside popovers (not on every yield value
+ * anymore — the bottom "Sources" footer + the per-yield popover handle that).
  */
 export function SrcLink({ url, label }: Props) {
   return (
@@ -14,7 +14,7 @@ export function SrcLink({ url, label }: Props) {
       target="_blank"
       rel="noopener noreferrer"
       title={`Source: ${label}`}
-      className="inline-flex items-center align-top ml-0.5 text-[8px] font-bold text-civ-ink/40 hover:text-civ-gold transition-colors no-underline"
+      className="inline-flex items-center align-baseline ml-0.5 text-[10px] font-semibold text-ink-subtle hover:text-civgold transition-colors no-underline"
     >
       <span className="leading-none">↗</span>
     </a>

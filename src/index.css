@@ -1,52 +1,105 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
-  margin: 0;
-  height: 100%;
-  width: 100%;
-  background: #0d1b2a;
-  color: #1b1a17;
-  font-family: 'Inter', system-ui, sans-serif;
-  overflow: hidden;
+@layer base {
+  /* Light (default) */
+  :root {
+    --surface-1: 250 250 250;     /* off-white app bg */
+    --surface-2: 255 255 255;     /* card */
+    --surface-3: 248 248 250;     /* nested card */
+    --ink:       15  23  42;      /* slate-900 */
+    --ink-muted: 71  85  105;     /* slate-600 */
+    --ink-subtle: 148 163 184;    /* slate-400 */
+    --line:      226 232 240;     /* slate-200 */
+    --ocean:      31  77 107;     /* deep teal */
+    --ocean-deep: 21  51  74;
+    --civgold-bg: 255 247 220;    /* very light gold */
+    --civgold-ring: 212 160 23;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: 13  17  23;    /* near-black */
+      --surface-2: 22  27  34;    /* card */
+      --surface-3: 30  36  44;
+      --ink:       241 245 249;
+      --ink-muted: 148 163 184;
+      --ink-subtle: 100 116 139;
+      --line:      36  41  47;
+      --ocean:      26  60  84;
+      --ocean-deep: 13  35  52;
+      --civgold-bg:  56  43  18;
+      --civgold-ring: 212 160 23;
+    }
+  }
+
+  html, body, #root {
+    margin: 0;
+    height: 100%;
+    width: 100%;
+    background: rgb(var(--ocean-deep));
+    color: rgb(var(--ink));
+    font-family: theme('fontFamily.sans');
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+  }
+
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
-  .civ-panel {
-    @apply bg-civ-paper border-2 border-civ-border rounded-xl shadow-civ;
-    background-image:
-      linear-gradient(180deg, rgba(255,250,225,0.45), rgba(244,233,200,0.85)),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 100'><polygon points='28,2 54,17 54,49 28,64 2,49 2,17' fill='none' stroke='rgba(27,26,23,0.10)' stroke-width='1.5'/></svg>");
-    background-size: auto, 56px 100px;
+  /* The default card — clean, soft, layered shadow. Apple-ish. */
+  .card {
+    @apply rounded-2xl bg-surface-2 shadow-card;
   }
-  .civ-chip {
-    @apply inline-flex items-center gap-1 rounded-md border border-civ-border/60 bg-civ-parchment/70 px-2 py-0.5 text-xs font-semibold text-civ-ink;
+  /* Frosted-glass panel — used for floating UI over the map. */
+  .glass {
+    @apply rounded-2xl border border-line/60 shadow-card;
+    background: rgb(var(--surface-2) / 0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
-  .civ-btn {
-    @apply inline-flex items-center gap-2 rounded-lg border-2 border-civ-border bg-civ-gold px-3 py-1.5 text-sm font-bold uppercase tracking-wider text-civ-ink shadow-civ transition-transform hover:translate-y-[-1px] active:translate-y-[1px];
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-line/70 bg-surface-2/70 px-2 py-0.5 text-[11px] font-medium text-ink-muted;
   }
-  .civ-btn-ghost {
-    @apply inline-flex items-center gap-2 rounded-lg border-2 border-civ-border/60 bg-civ-paper px-3 py-1.5 text-sm font-bold uppercase tracking-wider text-civ-ink shadow hover:bg-civ-parchment;
+  /* Primary button — used sparingly */
+  .btn {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-ink text-surface-2 px-3.5 py-1.5 text-[13px] font-semibold transition-all ease-apple duration-150 hover:opacity-90 active:scale-[0.97];
   }
-  .civ-heading {
-    font-family: 'Cinzel', Georgia, serif;
-    @apply uppercase tracking-wider text-civ-ink;
+  .btn-ghost {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2/80 text-ink px-3 py-1.5 text-[13px] font-medium transition-all ease-apple duration-150 hover:bg-surface-3 active:scale-[0.97];
+  }
+  .btn-gold {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-civgold text-white px-3.5 py-1.5 text-[13px] font-semibold transition-all ease-apple duration-150 hover:opacity-90 active:scale-[0.97];
+  }
+  .heading {
+    @apply font-semibold tracking-tight text-ink;
+  }
+  .eyebrow {
+    @apply text-[10px] font-semibold uppercase tracking-wider text-ink-subtle;
   }
 }
 
-/* Map country base styles */
+/* react-simple-maps */
 .rsm-geography {
   outline: none;
-  transition: fill 0.15s ease;
+  transition: fill 250ms ease, stroke 150ms ease;
 }
-.rsm-geography:focus {
-  outline: none;
-}
+.rsm-geography:focus { outline: none; }
 
-/* Scrollbar for stat card */
-.civ-scroll::-webkit-scrollbar { width: 8px; }
-.civ-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
-.civ-scroll::-webkit-scrollbar-thumb { background: rgba(27,26,23,0.25); border-radius: 4px; }
+/* Scrollbar — Apple slim */
+.scroll-y::-webkit-scrollbar { width: 10px; }
+.scroll-y::-webkit-scrollbar-track { background: transparent; }
+.scroll-y::-webkit-scrollbar-thumb { background: rgb(var(--ink-subtle) / 0.35); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+.scroll-y::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink-subtle) / 0.55); background-clip: padding-box; border: 3px solid transparent; }
