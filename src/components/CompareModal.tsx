@@ -39,11 +39,17 @@ export function CompareModal() {
               </div>
             </div>
 
-            <div className="scroll-y flex-1 overflow-y-auto px-6 py-5">
-              {/* Slot pickers */}
-              <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-start">
+            <div className="scroll-y flex-1 overflow-y-auto px-4 sm:px-6 py-5">
+              {/* Slot pickers — stack vertically on mobile, side-by-side on tablet+ */}
+              <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto_1fr] gap-3 sm:gap-4 sm:items-start">
                 <SlotPicker slot={0} country={a} />
-                <div className="text-xl font-light text-ink-subtle mt-6">vs</div>
+                {/* vs separator */}
+                <div className="hidden sm:flex text-xl font-light text-ink-subtle mt-6 justify-center select-none">vs</div>
+                <div className="sm:hidden flex items-center -my-0.5">
+                  <div className="flex-1 h-px bg-line/40" />
+                  <span className="px-3 text-[10px] font-semibold text-ink-subtle uppercase tracking-widest">vs</span>
+                  <div className="flex-1 h-px bg-line/40" />
+                </div>
                 <SlotPicker slot={1} country={b} />
               </div>
 
@@ -174,23 +180,20 @@ function SlotPicker({ slot, country }: { slot: 0 | 1; country: Country | null })
         >
           {country ? (
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="text-2xl leading-none">{country.flag}</span>
-                <div className="min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <span className="text-2xl leading-none shrink-0">{country.flag}</span>
+                <div className="min-w-0 flex-1">
                   <div className="text-[15px] font-semibold text-ink truncate leading-tight">{country.name}</div>
-                  <div className="text-[11px] text-ink-subtle">{country.era} era · Civ Score {country.civScore}</div>
+                  <div className="text-[11px] text-ink-subtle truncate">{country.era} · Score {country.civScore}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <span className="text-[11px] text-ink-subtle group-hover:text-ink-muted transition-colors">change</span>
-                <button
-                  onClick={clear}
-                  className="text-ink-subtle hover:text-ink transition-colors ml-1 text-base leading-none"
-                  aria-label="Remove"
-                >
-                  ×
-                </button>
-              </div>
+              <button
+                onClick={clear}
+                className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-ink-subtle hover:text-ink hover:bg-line/40 transition-colors text-base leading-none"
+                aria-label="Remove"
+              >
+                ×
+              </button>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-ink-subtle py-1">
