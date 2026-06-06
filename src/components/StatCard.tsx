@@ -1,5 +1,5 @@
-import { AnimatePresence, motion, animate } from 'framer-motion';
-import { useState, useEffect, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { YieldRow } from './YieldRow';
 import { PoliticalCompass } from './PoliticalCompass';
@@ -78,7 +78,6 @@ export function StatCard() {
           <div className="glass h-full flex flex-col overflow-hidden">
             <Header country={country} onClose={() => setSelected(null)} onEraClick={() => setOpenEra(true)} />
             <div className="scroll-y flex-1 overflow-y-auto px-5 py-4 space-y-5">
-              {country.disputedNote && <DisputedBanner note={country.disputedNote} />}
               <CivScoreBlock country={country} />
               <Section title="Yields">
                 <YieldRow country={country} onYieldClick={(k) => setOpenYield(k)} />
@@ -94,10 +93,23 @@ export function StatCard() {
                 <Section title="Alliances & Blocs">
                   <div className="flex flex-wrap gap-1.5">
                     {country.alliances.map((a) => (
-                      <span key={a} className="chip">{a}</span>
+                      <a
+                        key={a}
+                        href={`https://en.wikipedia.org/wiki/${encodeURIComponent(allianceWikiSlug(a))}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="chip hover:border-civgold-ring/60 hover:text-ink transition-colors"
+                      >
+                        {a}
+                      </a>
                     ))}
                     {country.unSecurityCouncilPermanent && (
-                      <span className="chip border-civgold-ring/60 bg-civgold-bg text-ink">UN SC P5</span>
+                      <a
+                        href="https://en.wikipedia.org/wiki/United_Nations_Security_Council"
+                        target="_blank" rel="noopener noreferrer"
+                        className="chip border-civgold-ring/60 bg-civgold-bg text-ink hover:opacity-80 transition-opacity"
+                      >
+                        UN SC P5
+                      </a>
                     )}
                   </div>
                 </Section>
@@ -115,7 +127,13 @@ export function StatCard() {
                       {merged.slice(0, 8).map((w) => (
                         <li key={w.name} className="flex items-baseline gap-2">
                           <span className="text-[15px] leading-none">{w.kind === 'natural' ? '🌋' : w.kind === 'mixed' ? '🏞️' : '🏛️'}</span>
-                          <span className="font-medium text-ink">{w.name}</span>
+                          <a
+                            href={`https://en.wikipedia.org/wiki/${encodeURIComponent(w.name.replace(/ /g, '_'))}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="font-medium text-ink hover:text-civgold underline decoration-line/50 decoration-1 underline-offset-2 hover:decoration-civgold transition-colors"
+                          >
+                            {w.name}
+                          </a>
                           {w.year && <span className="text-[11px] text-ink-subtle">since {w.year}</span>}
                         </li>
                       ))}
@@ -129,7 +147,13 @@ export function StatCard() {
                     {country.greatPeople.map((p) => (
                       <li key={p.name} className="flex items-baseline gap-2">
                         <span>{kindIcon(p.kind)}</span>
-                        <span className="font-medium text-ink">{p.name}</span>
+                        <a
+                          href={`https://en.wikipedia.org/wiki/${encodeURIComponent(p.name.replace(/ /g, '_'))}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="font-medium text-ink hover:text-civgold underline decoration-line/50 decoration-1 underline-offset-2 hover:decoration-civgold transition-colors"
+                        >
+                          {p.name}
+                        </a>
                         {p.note && <span className="text-[11px] text-ink-muted">— {p.note}</span>}
                       </li>
                     ))}
@@ -183,6 +207,7 @@ export function StatCard() {
                   Ruling: {country.rulingCoalition.map((p) => `${p.name} (${p.ideology})`).join(' · ')}
                 </div>
               </Section>
+              {country.disputedNote && <DisputedBanner note={country.disputedNote} />}
               <Section title="Sources">
                 <div className="text-[11px] text-ink-muted leading-relaxed">
                   <div className="mb-1.5">All figures are snapshots, mostly 2023–2024. Click any source to see the underlying dataset.</div>
@@ -257,19 +282,23 @@ function Header({ country, onClose, onEraClick }: { country: Country; onClose: (
 function CivScoreBlock({ country }: { country: Country }) {
   const target = country.civScore ?? 0;
   const [display, setDisplay] = useState(0);
-  const prevIso = useRef('');
 
   useEffect(() => {
-    if (prevIso.current === country.iso3) return;
-    prevIso.current = country.iso3;
-    setDisplay(0);
-    const controls = animate(0, target, {
-      duration: 0.7,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: (v) => setDisplay(Math.round(v)),
-    });
-    return controls.stop;
-  }, [country.iso3, target]);
+    if (target === 0) { setDisplay(0); return; }
+    const DURATION = 650;
+    const startTime = performance.now();
+    let rafId: number;
+    const tick = (now: number) => {
+      const p = Math.min((now - startTime) / DURATION, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(target * eased));
+      if (p < 1) rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  // Re-run whenever we open a different country
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [country.iso3]);
 
   return (
     <div className="flex items-center justify-between rounded-2xl border border-civgold-ring/30 bg-civgold-bg/50 px-4 py-3">
@@ -410,6 +439,28 @@ function Footer({ country, compareSlots, onCompare }: { country: Country; compar
       </button>
     </div>
   );
+}
+
+const ALLIANCE_WIKI: Record<string, string> = {
+  NATO: 'NATO', EU: 'European_Union', G7: 'G7', G20: 'G20', OECD: 'OECD',
+  BRICS: 'BRICS', AU: 'African_Union', ASEAN: 'ASEAN', 'Five Eyes': 'Five_Eyes',
+  AUKUS: 'AUKUS', Quad: 'Quadrilateral_Security_Dialogue', GCC: 'Gulf_Cooperation_Council',
+  OPEC: 'OPEC', 'OPEC+': 'OPEC%2B', Commonwealth: 'Commonwealth_of_Nations',
+  SCO: 'Shanghai_Cooperation_Organisation', CSTO: 'Collective_Security_Treaty_Organization',
+  EAEU: 'Eurasian_Economic_Union', Eurozone: 'Eurozone', EEA: 'European_Economic_Area',
+  EFTA: 'European_Free_Trade_Association', CPTPP: 'Comprehensive_and_Progressive_Agreement_for_Trans-Pacific_Partnership',
+  RCEP: 'Regional_Comprehensive_Economic_Partnership', Mercosur: 'Mercosur',
+  APEC: 'Asia-Pacific_Economic_Cooperation', USMCA: 'United_States%E2%80%93Mexico%E2%80%93Canada_Agreement',
+  'Arab League': 'Arab_League', OIC: 'Organisation_of_Islamic_Cooperation',
+  ECOWAS: 'Economic_Community_of_West_African_States', SADC: 'Southern_African_Development_Community',
+  EAC: 'East_African_Community', 'Nordic Council': 'Nordic_Council',
+  ALBA: 'Bolivarian_Alliance_for_the_Peoples_of_Our_America', SICA: 'Central_American_Integration_System',
+  CARICOM: 'Caribbean_Community', 'Pacific Alliance': 'Pacific_Alliance',
+  'Abraham Accords': 'Abraham_Accords', MNNA: 'Major_non-NATO_ally',
+};
+
+function allianceWikiSlug(a: string): string {
+  return ALLIANCE_WIKI[a] ?? a.replace(/ /g, '_');
 }
 
 function kindIcon(k: string) {

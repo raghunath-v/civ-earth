@@ -44,10 +44,11 @@ export function YieldRow({ country, dense = false, onYieldClick }: Props) {
             type="button"
             onClick={clickable ? () => onYieldClick!(k) : undefined}
             disabled={!clickable}
-            className={`group min-w-0 text-left rounded-xl border border-line/70 bg-surface-3/60 px-2 py-2 transition-all duration-150 ease-apple ${clickable ? 'hover:bg-surface-3 hover:border-line cursor-pointer active:scale-[0.98]' : 'cursor-default'}`}
+            className={`group min-w-0 text-left rounded-xl border border-line/70 bg-surface-3/60 px-2 py-2 flex flex-col transition-all duration-150 ease-apple ${clickable ? 'hover:bg-surface-3 hover:border-line cursor-pointer active:scale-[0.98]' : 'cursor-default'}`}
           >
-            <div className="flex items-center gap-1 leading-none">
-              <span className="text-[13px]">{m.icon}</span>
+            {/* Fixed-height label row — always at top */}
+            <div className="flex items-center gap-1 leading-none h-4">
+              <span className="text-[13px] leading-none">{m.icon}</span>
               <span
                 className="text-[9px] font-semibold uppercase tracking-wide truncate"
                 style={{ color: m.color }}
@@ -56,21 +57,23 @@ export function YieldRow({ country, dense = false, onYieldClick }: Props) {
                 {m.label}
               </span>
             </div>
-            <div className="mt-1 text-[12px] font-semibold text-ink leading-snug break-words">
+            {/* Value — fixed position below label */}
+            <div className="mt-1.5 text-[12px] font-semibold text-ink leading-snug break-words min-h-[32px]">
               {y.display}
             </div>
-            {y.rank !== undefined && (
-              <div className="text-[10px] text-ink-subtle font-medium mt-0.5 tabular-nums">
-                #{y.rank} · {y.percentile}th pct
-              </div>
-            )}
+            {/* Rank — always at same vertical position */}
+            <div className="text-[10px] text-ink-subtle font-medium tabular-nums h-4">
+              {y.rank !== undefined ? `#${y.rank} · ${y.percentile}th pct` : ''}
+            </div>
+            {/* Sparkline */}
             {!dense && series.length >= 3 && (
               <div className="mt-1.5">
                 <Sparkline series={series} color={m.color} />
               </div>
             )}
+            {/* Detail text */}
             {!dense && y.detail && (
-              <div className="text-[10px] text-ink-muted leading-tight mt-0.5 break-words line-clamp-2">{y.detail}</div>
+              <div className="text-[10px] text-ink-muted leading-tight mt-1 break-words line-clamp-2">{y.detail}</div>
             )}
           </button>
         );

@@ -2,10 +2,20 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../store';
 
+// Lightweight singleton trigger — TopBar calls this instead of importing the full modal state
+let _openPalette: (() => void) | null = null;
+export function openCommandPalette() { _openPalette?.(); }
+
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
+
+  // Register the open trigger
+  useEffect(() => {
+    _openPalette = () => { setOpen(true); setQuery(''); setCursor(0); };
+    return () => { _openPalette = null; };
+  }, []);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -66,16 +76,6 @@ export function CommandPalette() {
 
   return (
     <>
-      {/* ⌘K hint in top bar area — rendered here so the hint doesn't need to be in TopBar */}
-      <button
-        className="pointer-events-auto fixed top-4 left-1/2 -translate-x-1/2 z-30 hidden sm:flex items-center gap-2 glass px-3 py-1.5 text-[12px] text-ink-muted hover:text-ink transition-colors"
-        onClick={() => { setOpen(true); setQuery(''); setCursor(0); }}
-        aria-label="Search countries"
-      >
-        <span>🔍 Search countries</span>
-        <kbd className="inline-flex items-center gap-0.5 rounded border border-line/80 bg-surface-3 px-1 py-0.5 text-[10px] font-semibold text-ink-subtle">⌘K</kbd>
-      </button>
-
       <AnimatePresence>
         {open && (
           <motion.div

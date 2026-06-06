@@ -17,6 +17,7 @@ interface Store {
   setSelected(iso3: string | null): void;
   setHovered(iso3: string | null): void;
   addToCompare(iso3: string): void;
+  setCompareSlot(slot: 0 | 1, iso3: string | null): void;
   removeFromCompare(slot: 0 | 1): void;
   clearCompare(): void;
   setHeatmapYield(y: YieldKey | 'civScore' | null): void;
@@ -60,6 +61,11 @@ export const useStore = create<Store>((set, get) => ({
       // Both filled; replace slot B
       set({ compareSlots: [a, iso3], showCompareModal: true });
     }
+  },
+  setCompareSlot(slot, iso3) {
+    const s = [...get().compareSlots] as [string | null, string | null];
+    s[slot] = iso3;
+    set({ compareSlots: s });
   },
   removeFromCompare(slot) {
     const s = [...get().compareSlots] as [string | null, string | null];

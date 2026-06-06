@@ -1,18 +1,33 @@
+import { useState } from 'react';
+
 interface Props {
   note: string;
 }
 
-/** Renders the disputed-territory caveat near the top of a stat card. */
+/**
+ * Quiet inline note about contested sovereignty / disputed territory.
+ * Collapsed by default — users can expand if they want the context.
+ * Placed at the bottom of the stat card, before Sources.
+ */
 export function DisputedBanner({ note }: Props) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <div className="rounded-xl border border-amber-500/30 bg-amber-50/60 dark:bg-amber-900/15 px-3 py-2.5">
-      <div className="flex items-start gap-2">
-        <span className="text-amber-600 dark:text-amber-400 text-base leading-none mt-0.5" aria-hidden>⚠</span>
-        <div className="text-[12px] text-ink leading-relaxed">
-          <span className="font-semibold mr-1">Contested territory.</span>
-          <span className="text-ink-muted">{note}</span>
-        </div>
-      </div>
+    <div className="rounded-xl border border-line/60 bg-surface-3/40 px-3 py-2.5">
+      <button
+        className="flex items-center gap-2 w-full text-left"
+        onClick={() => setExpanded((e) => !e)}
+        aria-expanded={expanded}
+      >
+        <span className="text-[13px] text-ink-subtle" aria-hidden>🏳️</span>
+        <span className="text-[12px] font-medium text-ink-muted flex-1">Territorial / sovereignty note</span>
+        <span className="text-[11px] text-ink-subtle">{expanded ? '▲' : '▼'}</span>
+      </button>
+      {expanded && (
+        <p className="mt-2 text-[11px] text-ink-muted leading-relaxed border-t border-line/50 pt-2">
+          {note}
+        </p>
+      )}
     </div>
   );
 }
