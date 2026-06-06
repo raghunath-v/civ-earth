@@ -79,15 +79,3 @@ src/
 └── App.tsx
 public/data/world-110m.json   World map TopoJSON (from `world-atlas`)
 ```
-
-## Roadmap (v2)
-
-- "Why this number?" popover on each yield (definition + world median + percentile + source)
-- HDI ladder popover on era badges
-- Per-yield sparklines from World Bank time series (last 20 years)
-- ⌘K command palette / country search
-- Shareable URLs (`#/c/USA?compare=CHN&yield=science`)
-- Mobile responsive bottom-sheet layout
-- Disputed-territory diplomacy banners
-- Open Graph share image
-- Apple-style design pass — light + dark mode, frosted glass, microanimations
