@@ -4,7 +4,7 @@ A real-world map where every country gets a Civilization-style stat card. GDP be
 
 Link: https://civearth.netlify.app/
 
-<img width="1707" height="972" alt="Screenshot 2026-06-06 at 19 10 06" src="https://github.com/user-attachments/assets/a4cb1f68-fa13-467c-8d4c-b4f89bc7e7b7" />
+<img width="3414" height="1980" alt="image" src="https://github.com/user-attachments/assets/ddeb84fe-6d58-4d4f-8929-545ce342611a" />
 
 
 ## What it does
