@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { YieldRow } from './YieldRow';
@@ -28,43 +28,69 @@ export function StatCard() {
 
   // On mobile (<640px) render as a bottom sheet; desktop keeps right drawer
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const dragControls = useDragControls();
 
   return (
     <AnimatePresence>
       {selectedIso3 && country && (
         isMobile ? (
           /* ── Mobile: bottom sheet ── */
-          <motion.aside
-            key={`sheet-${country.iso3}`}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 36 }}
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.25 }}
-            onDragEnd={(_e, info) => { if (info.offset.y > 80) setSelected(null); }}
-            className="fixed inset-x-0 bottom-0 z-40 max-h-[92vh] rounded-t-3xl"
-            style={{ touchAction: 'none' }}
-          >
-            <div className="glass h-full flex flex-col overflow-hidden rounded-t-3xl">
-              {/* drag handle */}
-              <div className="flex justify-center pt-2.5 pb-1">
-                <div className="w-10 h-1 rounded-full bg-line/60" />
+          <>
+            {/* Backdrop — tap to dismiss */}
+            <motion.div
+              key="sheet-backdrop"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-30 bg-black/30"
+              onClick={() => setSelected(null)}
+            />
+            <motion.aside
+              key={`sheet-${country.iso3}`}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 36 }}
+              drag="y"
+              dragListener={false}        /* drag only starts when handle calls dragControls.start */
+              dragControls={dragControls}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.4 }}
+              onDragEnd={(_e, info) => { if (info.offset.y > 90 || info.velocity.y > 400) setSelected(null); }}
+              className="fixed inset-x-0 bottom-0 z-40 h-[88vh] rounded-t-3xl"
+            >
+              <div className="glass h-full flex flex-col overflow-hidden rounded-t-3xl">
+                {/* drag handle — ONLY this region initiates dragging */}
+                <div
+                  onPointerDown={(e) => dragControls.start(e)}
+                  className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing select-none"
+                  style={{ touchAction: 'none' }}
+                  aria-label="Drag to close"
+                >
+                  <div className="w-10 h-1 rounded-full bg-line" />
+                </div>
+                <Header country={country} onClose={() => setSelected(null)} onEraClick={() => setOpenEra(true)} />
+                <div className="scroll-y flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-5">
+                  <CivScoreBlock country={country} />
+                  <Section title="Yields"><YieldRow country={country} onYieldClick={(k) => setOpenYield(k)} /></Section>
+                  <Section title="Ideology & Politics"><Ideology country={country} /></Section>
+                  <Section title="Civic Indicators"><CivicBars country={country} /></Section>
+                  {country.alliances.length > 0 && (
+                    <Section title="Alliances & Blocs">
+                      <div className="flex flex-wrap gap-1.5">
+                        {country.alliances.map((a) => (
+                          <span key={a} className="chip">{a}</span>
+                        ))}
+                      </div>
+                    </Section>
+                  )}
+                  {country.disputedNote && <DisputedBanner note={country.disputedNote} />}
+                </div>
+                <Footer country={country} compareSlots={compareSlots} onCompare={addToCompare} />
               </div>
-              <Header country={country} onClose={() => setSelected(null)} onEraClick={() => setOpenEra(true)} />
-              <div className="scroll-y flex-1 overflow-y-auto px-5 py-4 space-y-5" style={{ touchAction: 'pan-y' }}>
-                {country.disputedNote && <DisputedBanner note={country.disputedNote} />}
-                <CivScoreBlock country={country} />
-                <Section title="Yields"><YieldRow country={country} onYieldClick={(k) => setOpenYield(k)} /></Section>
-                <Section title="Ideology & Politics"><Ideology country={country} /></Section>
-                <Section title="Civic Indicators"><CivicBars country={country} /></Section>
-              </div>
-              <Footer country={country} compareSlots={compareSlots} onCompare={addToCompare} />
-            </div>
-            <YieldPopover country={country} yieldKey={openYield} onClose={() => setOpenYield(null)} />
-            <EraPopover country={openEra ? country : null} onClose={() => setOpenEra(false)} />
-          </motion.aside>
+              <YieldPopover country={country} yieldKey={openYield} onClose={() => setOpenYield(null)} />
+              <EraPopover country={openEra ? country : null} onClose={() => setOpenEra(false)} />
+            </motion.aside>
+          </>
         ) : (
         /* ── Desktop: right drawer ── */
         <motion.aside

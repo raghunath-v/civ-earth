@@ -73,15 +73,15 @@
   .chip {
     @apply inline-flex items-center gap-1 rounded-full border border-line/70 bg-surface-2/70 px-2 py-0.5 text-[11px] font-medium text-ink-muted;
   }
-  /* Primary button — used sparingly */
+  /* Buttons — all share h-10 (40px) for consistent chrome */
   .btn {
-    @apply inline-flex items-center gap-1.5 rounded-full bg-ink text-surface-2 px-3.5 py-1.5 text-[13px] font-semibold transition-all ease-apple duration-150 hover:opacity-90 active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-1.5 h-10 rounded-full bg-ink text-surface-2 px-4 text-[13px] font-semibold transition-all ease-apple duration-150 hover:opacity-90 active:scale-[0.97];
   }
   .btn-ghost {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2/80 text-ink px-3 py-1.5 text-[13px] font-medium transition-all ease-apple duration-150 hover:bg-surface-3 active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-1.5 h-10 min-w-10 rounded-full border border-line bg-surface-2/80 text-ink px-3.5 text-[13px] font-medium transition-all ease-apple duration-150 hover:bg-surface-3 active:scale-[0.97];
   }
   .btn-gold {
-    @apply inline-flex items-center gap-1.5 rounded-full bg-civgold text-white px-3.5 py-1.5 text-[13px] font-semibold transition-all ease-apple duration-150 hover:opacity-90 active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-1.5 h-10 rounded-full bg-civgold text-white px-4 text-[13px] font-semibold transition-all ease-apple duration-150 hover:opacity-90 active:scale-[0.97];
   }
   .heading {
     @apply font-semibold tracking-tight text-ink;

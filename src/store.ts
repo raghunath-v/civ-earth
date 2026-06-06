@@ -12,6 +12,7 @@ interface Store {
   heatmapYield: YieldKey | 'civScore' | null;
   leaderboardOpen: boolean;
   showCompareModal: boolean;
+  viewMode: 'map' | 'globe';
 
   setCountries(list: Country[]): void;
   setSelected(iso3: string | null): void;
@@ -24,6 +25,7 @@ interface Store {
   setLeaderboardOpen(open: boolean): void;
   openCompareModal(): void;
   closeCompareModal(): void;
+  setViewMode(m: 'map' | 'globe'): void;
 }
 
 export const useStore = create<Store>((set, get) => ({
@@ -36,6 +38,7 @@ export const useStore = create<Store>((set, get) => ({
   heatmapYield: null,
   leaderboardOpen: false,
   showCompareModal: false,
+  viewMode: 'map',
 
   setCountries(list) {
     const byIso3: Record<string, Country> = {};
@@ -78,4 +81,5 @@ export const useStore = create<Store>((set, get) => ({
   setLeaderboardOpen(open) { set({ leaderboardOpen: open }); },
   openCompareModal() { set({ showCompareModal: true }); },
   closeCompareModal() { set({ showCompareModal: false }); },
+  setViewMode(m) { set({ viewMode: m }); },
 }));
