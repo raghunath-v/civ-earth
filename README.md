@@ -2,7 +2,10 @@
 
 A real-world map where every country gets a Civilization-style stat card. GDP becomes **Gold**, R&D spending becomes **Science**, UNESCO sites become **Wonders**, World Happiness becomes **Amenities**. 174 countries, real numbers, every figure cited to its source.
 
-![demo screenshot placeholder — drop one in here once OG image is generated](public/og-image.png)
+Link: https://civearth.netlify.app/
+
+<img width="1707" height="972" alt="Screenshot 2026-06-06 at 19 10 06" src="https://github.com/user-attachments/assets/a4cb1f68-fa13-467c-8d4c-b4f89bc7e7b7" />
+
 
 ## What it does
 
